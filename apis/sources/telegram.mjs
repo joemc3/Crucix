@@ -10,12 +10,13 @@ function delay(ms) { return new Promise(r => setTimeout(r, ms)); }
 
 // Curated list of well-known public OSINT / conflict / geopolitics channels
 // All verified to have public web previews enabled at https://t.me/s/{id}
-const CHANNELS = [
+// Override with TELEGRAM_CHANNELS env var (comma-separated channel IDs)
+const DEFAULT_CHANNELS = [
+  // === Conflict: Ukraine/Russia ===
   { id: 'intelslava',        label: 'Intel Slava Z',       topic: 'conflict',    note: 'Conflict updates, pro-Russian perspective' },
   { id: 'legitimniy',        label: 'Legitimniy',          topic: 'conflict',    note: 'Ukrainian politics & conflict analysis' },
   { id: 'wartranslated',     label: 'War Translated',      topic: 'conflict',    note: 'Conflict translations & OSINT' },
   { id: 'ukraine_frontline', label: 'Ukraine Frontline',   topic: 'conflict',    note: 'Frontline situation updates' },
-  { id: 'middleeastosint',   label: 'Middle East OSINT',   topic: 'osint',       note: 'Middle East open source intel' },
   { id: 'mod_russia',        label: 'Russian MoD',         topic: 'conflict',    note: 'Russian Ministry of Defense official' },
   { id: 'CIG_telegram',      label: 'Conflict Intel Team', topic: 'osint',       note: 'Conflict Intelligence Team analysis' },
   { id: 'RVvoenkor',         label: 'Voenkor RV',          topic: 'conflict',    note: 'Russian military correspondent' },
@@ -23,14 +24,54 @@ const CHANNELS = [
   { id: 'DeepStateUA',       label: 'DeepState Ukraine',   topic: 'conflict',    note: 'Ukrainian frontline maps & analysis' },
   { id: 'operativnoZSU',     label: 'ZSU Operative',       topic: 'conflict',    note: 'Ukrainian armed forces updates' },
   { id: 'GeneralStaffZSU',   label: 'General Staff ZSU',   topic: 'conflict',    note: 'Ukrainian General Staff official' },
+  // === Middle East ===
+  { id: 'middleeastosint',   label: 'Middle East OSINT',   topic: 'osint',       note: 'Middle East open source intel' },
+  { id: 'inikiforv',         label: 'Nikiforov OSINT',     topic: 'osint',       note: 'Cross-regional OSINT analyst' },
+  // === Geopolitics & Analysis ===
+  { id: 'geaborning',        label: 'Geo A. Borning',      topic: 'geopolitics', note: 'Geopolitical analysis and forecasting' },
+  { id: 'TheIntelligencer',  label: 'The Intelligencer',   topic: 'osint',       note: 'Intelligence community news' },
+  // === Markets & Finance ===
+  { id: 'WallStreetSilver',  label: 'Wall St Silver',      topic: 'finance',     note: 'Commodities and macro commentary' },
+  { id: 'unusual_whales',    label: 'Unusual Whales',      topic: 'finance',     note: 'Market flow and options analysis' },
 ];
 
+// Allow user to add custom channels via env var
+function loadChannels() {
+  const custom = process.env.TELEGRAM_CHANNELS;
+  if (!custom) return DEFAULT_CHANNELS;
+
+  const customIds = custom.split(',').map(s => s.trim()).filter(Boolean);
+  const existing = new Set(DEFAULT_CHANNELS.map(c => c.id));
+
+  const extras = customIds
+    .filter(id => !existing.has(id))
+    .map(id => ({ id, label: id, topic: 'custom', note: 'User-added channel' }));
+
+  return [...DEFAULT_CHANNELS, ...extras];
+}
+
+const CHANNELS = loadChannels();
+
 // Urgent keywords that flag high-priority posts
+// Organized by domain for maintainability
 const URGENT_KEYWORDS = [
-  'breaking', 'urgent', 'alert', 'missile', 'strike', 'explosion',
-  'nuclear', 'chemical', 'ceasefire', 'escalation', 'invasion',
-  'offensive', 'airstrike', 'casualties', 'retreat', 'advance',
-  'nato', 'mobilization', 'coup', 'assassination', 'drone',
+  // Breaking / meta urgency
+  'breaking', 'urgent', 'alert', 'confirmed', 'just in', 'flash',
+  // Military / kinetic
+  'missile', 'strike', 'explosion', 'airstrike', 'drone', 'bombardment',
+  'shelling', 'intercept', 'ICBM', 'hypersonic', 'F-16', 'ATACMS', 'HIMARS',
+  // Escalation / de-escalation
+  'nuclear', 'chemical', 'biological', 'ceasefire', 'escalation', 'invasion',
+  'offensive', 'retreat', 'advance', 'mobilization', 'martial law',
+  // Geopolitical
+  'nato', 'coup', 'assassination', 'sanctions', 'embargo', 'blockade',
+  'summit', 'ultimatum', 'declaration of war', 'peace deal',
+  // Casualty / humanitarian
+  'casualties', 'killed', 'wounded', 'evacuation', 'refugee', 'humanitarian',
+  // Infrastructure / cyber
+  'blackout', 'sabotage', 'cyberattack', 'pipeline', 'dam', 'nuclear plant',
+  // Financial crisis
+  'default', 'bank run', 'circuit breaker', 'flash crash', 'emergency rate',
 ];
 
 // ─── Bot API mode ───────────────────────────────────────────────────────────

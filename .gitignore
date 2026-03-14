@@ -23,6 +23,10 @@ desktop.ini
 
 # Claude Code
 .claude/
+CLAUDE.md
+
+# Launch playbook (internal, not for public repo)
+LAUNCH_PLAYBOOK.md
 
 # Playwright
 .playwright-cli/
@@ -30,3 +34,12 @@ desktop.ini
 # Logs
 *.log
 npm-debug.log*
+
+# Docker
+.dockerignore
+
+# Package lock (optional — remove this line if you want deterministic installs)
+# package-lock.json
+
+# Backup files
+*.bak

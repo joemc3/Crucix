@@ -1,0 +1,11 @@
+version: '3.8'
+services:
+  crucix:
+    build: .
+    ports:
+      - "${PORT:-3117}:${PORT:-3117}"
+    env_file:
+      - .env
+    volumes:
+      - ./runs:/app/runs
+    restart: unless-stopped

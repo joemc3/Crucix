@@ -467,7 +467,9 @@ async function cliInject() {
   console.log('Data injected into jarvis.html!');
 
   // Auto-open dashboard in default browser
-  const openCmd = process.platform === 'win32' ? 'start ""' :
+  // NOTE: On Windows, `start` in PowerShell is an alias for Start-Service, not cmd's start.
+  // We must use `cmd /c start ""` to ensure it works in both cmd.exe and PowerShell.
+  const openCmd = process.platform === 'win32' ? 'cmd /c start ""' :
                   process.platform === 'darwin' ? 'open' : 'xdg-open';
   const dashUrl = htmlPath.replace(/\\/g, '/');
   exec(`${openCmd} "${dashUrl}"`, (err) => {

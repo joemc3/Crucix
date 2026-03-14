@@ -117,10 +117,15 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:var(--s
 .news-icon{fill:rgba(129,212,250,0.8);filter:drop-shadow(0 0 3px rgba(129,212,250,0.4));transition:fill .2s}
 .news-icon:hover{fill:rgba(129,212,250,1)}
 
-/* LOWER GRID */
-.lower{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-top:10px}
-.lower-wide{grid-column:1/-1}
-.metrics-row{display:grid;grid-template-columns:repeat(5,1fr);gap:6px}
+/* LOWER GRID — flex layout for responsive panel sizing */
+.lower{display:flex;flex-wrap:wrap;gap:10px;margin-top:10px;align-items:flex-start}
+.lower .g-panel{min-width:0;box-sizing:border-box}
+.lower .lp-ticker{flex:1.2 1 240px;max-width:380px}
+.lower .lp-delta{flex:1 1 200px;max-width:300px}
+.lower .lp-macro{flex:2.5 1 360px}
+.lower .lp-ideas{flex:1.5 1 300px}
+.lower-wide{width:100%}
+.metrics-row{display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:6px}
 .mc{padding:10px;border:1px solid rgba(255,255,255,0.05);background:rgba(255,255,255,0.02)}
 .mc .ml{font-family:var(--mono);font-size:9px;text-transform:uppercase;letter-spacing:0.08em;color:var(--dim)}
 .mc .mv{font-family:var(--mono);font-size:18px;font-weight:600;margin-top:6px;display:block}
@@ -169,7 +174,7 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:var(--s
 .disclosure{font-family:var(--mono);font-size:8px;color:rgba(106,138,130,0.6);line-height:1.4;padding:6px;border-top:1px solid rgba(255,255,255,0.04);margin-top:6px}
 
 /* NEWS TICKER */
-.ticker-wrap{overflow:hidden;max-height:280px;position:relative;border:1px solid rgba(100,240,200,0.08);background:rgba(0,0,0,0.15)}
+.ticker-wrap{overflow:hidden;max-height:320px;position:relative;border:1px solid rgba(100,240,200,0.08);background:rgba(0,0,0,0.15)}
 .ticker-wrap::before,.ticker-wrap::after{content:'';position:absolute;left:0;right:0;height:30px;z-index:2;pointer-events:none}
 .ticker-wrap::before{top:0;background:linear-gradient(to bottom,rgba(14,17,22,0.95),transparent)}
 .ticker-wrap::after{bottom:0;background:linear-gradient(to top,rgba(14,17,22,0.95),transparent)}
@@ -194,6 +199,11 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:var(--s
 .delta-badge.up{color:#81c784;border:1px solid rgba(129,199,132,0.3);background:rgba(129,199,132,0.08)}
 .delta-badge.down{color:#ef5350;border:1px solid rgba(239,83,80,0.3);background:rgba(239,83,80,0.08)}
 .delta-badge.new{color:#4dd0e1;border:1px solid rgba(77,208,225,0.3);background:rgba(77,208,225,0.08);animation:pulse-new 2s ease infinite}
+.delta-list{max-height:160px;overflow-y:auto;scrollbar-width:thin;scrollbar-color:rgba(0,229,255,0.2) transparent}
+.delta-row{display:flex;align-items:center;gap:6px;padding:3px 0;font-family:var(--mono);font-size:10px;border-bottom:1px solid rgba(255,255,255,0.04)}
+.delta-row.new{background:rgba(77,208,225,0.04)}
+.delta-label{flex:1;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.delta-val{color:var(--dim);font-size:9px;white-space:nowrap}
 @keyframes pulse-new{0%,100%{opacity:0.7}50%{opacity:1}}
 
 /* IDEAS SOURCE BADGE */
@@ -203,7 +213,7 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:var(--s
 
 /* RESPONSIVE */
 @media(max-width:1400px){.grid{grid-template-columns:240px 1fr 320px}.metrics-row{grid-template-columns:repeat(3,1fr)}.src-grid{grid-template-columns:repeat(3,1fr)}}
-@media(max-width:1100px){.grid{grid-template-columns:1fr}.lower{grid-template-columns:1fr}.metrics-row{grid-template-columns:repeat(2,1fr)}.src-grid{grid-template-columns:repeat(2,1fr)}}
+@media(max-width:1100px){.grid{grid-template-columns:1fr}.lower .lp-ticker,.lower .lp-delta,.lower .lp-macro,.lower .lp-ideas{flex:1 1 100%;max-width:none}.metrics-row{grid-template-columns:repeat(2,1fr)}.src-grid{grid-template-columns:repeat(2,1fr)}}
 
 /* CONFLICT LAYER */
 @keyframes pulse-conflict{0%,100%{opacity:0.5;stroke-width:1.5}50%{opacity:0.9;stroke-width:2.5}}
@@ -788,8 +798,26 @@ function renderLower(){
   const rateCards = (mkt.rates||[]).map(mktCard).join('');
   const hasMarkets = indexCards || cryptoCards;
 
-  const signals=D.tSignals.slice(0,6).map((s,i)=>`<div class="signal-row"><strong>Signal ${i+1}</strong><p>${s}</p></div>`).join('');
   const srcHtml=D.health.map(s=>`<div class="src-item"><div class="sd ${s.err?'err':'ok'}"></div><span>${s.n}</span></div>`).join('');
+
+  // NEWS TICKER — merges RSS + GDELT + Telegram into flowing cards (moved from right rail)
+  const feed = (D.newsFeed || []).slice(0, 40);
+  const srcClass = s => {
+    if (!s) return 'other';
+    const sl = s.toLowerCase();
+    if (sl.includes('bbc')) return 'bbc';
+    if (sl.includes('nyt') || sl.includes('times')) return 'nyt';
+    if (sl.includes('jazeera') || sl.includes('alj')) return 'alj';
+    if (sl.includes('gdelt')) return 'gdelt';
+    if (sl.includes('telegram')) return 'tg';
+    return 'other';
+  };
+  const tickerCards = feed.map(n => {
+    const sc = srcClass(n.source);
+    const age = n.timestamp ? getAge(n.timestamp) : '';
+    return `<div class="tk-card ${n.urgent?'urgent':''}"><span class="tk-src ${sc}">${(n.source||'NEWS').substring(0,12)}</span><span class="tk-time">${age}</span><div class="tk-head">${cleanText(n.headline||'')}</div></div>`;
+  }).join('');
+  const tickerDuration = Math.max(20, feed.length * 2.5);
 
   // Leverageable Ideas (LLM-only feature)
   const hasIdeas = D.ideas && D.ideas.length > 0;
@@ -808,12 +836,47 @@ function renderLower(){
       <div style="font-size:9px;margin-top:6px;opacity:0.6">Set LLM_PROVIDER + credentials in .env to enable AI-powered trade ideas</div>
     </div>`;
 
+  // DELTA PANEL — what changed since last sweep
+  const delta = D.delta || {};
+  const ds = delta.summary || {};
+  const hasDelta = ds.totalChanges > 0;
+  const dirEmoji = {'risk-off':'&#9650;','risk-on':'&#9660;','mixed':'&#9670;'}[ds.direction]||'&#9670;';
+  const dirClass = {'risk-off':'up','risk-on':'down','mixed':''}[ds.direction]||'';
+  const escalated = (delta.signals?.escalated || []).slice(0,6);
+  const deescalated = (delta.signals?.deescalated || []).slice(0,4);
+  const newSigs = (delta.signals?.new || []).slice(0,4);
+  const deltaRows = [];
+  for(const s of newSigs){
+    deltaRows.push(`<div class="delta-row new"><span class="delta-badge new">NEW</span><span class="delta-label">${s.reason||s.label||s.key}</span></div>`);
+  }
+  for(const s of escalated){
+    const sev = s.severity==='critical'?'style="color:var(--warn);font-weight:600"':s.severity==='high'?'style="color:#ffab40"':'';
+    const val = s.pctChange!==undefined?`${s.pctChange>0?'+':''}${s.pctChange}%`:`${s.change>0?'+':''}${s.change}`;
+    deltaRows.push(`<div class="delta-row"><span class="delta-badge up">&#9650;</span><span class="delta-label" ${sev}>${s.label}</span><span class="delta-val">${s.from}→${s.to} (${val})</span></div>`);
+  }
+  for(const s of deescalated){
+    const val = s.pctChange!==undefined?`${s.pctChange}%`:`${s.change}`;
+    deltaRows.push(`<div class="delta-row"><span class="delta-badge down">&#9660;</span><span class="delta-label">${s.label||s.key}</span><span class="delta-val">${s.from}→${s.to} (${val})</span></div>`);
+  }
+  const deltaHtml = hasDelta ? deltaRows.join('') : '<div style="padding:12px;text-align:center;color:var(--dim);font-family:var(--mono);font-size:10px">No changes since last sweep</div>';
+
   document.getElementById('lowerGrid').innerHTML=`
-    <div class="g-panel">
-      <div class="sec-head"><h3>Cross-Source Signals</h3><span class="badge">WORLDVIEW</span></div>
-      ${signals}
+    <div class="g-panel lp-ticker" style="display:flex;flex-direction:column">
+      <div class="sec-head"><h3>Live News Ticker</h3><span class="badge">${feed.length} ITEMS</span></div>
+      <div class="ticker-wrap" style="--ticker-duration:${tickerDuration}s">
+        <div class="ticker-track">${tickerCards}${tickerCards}</div>
+      </div>
     </div>
-    <div class="g-panel">
+    <div class="g-panel lp-delta">
+      <div class="sec-head"><h3>Sweep Delta</h3><span class="badge ${dirClass}">${dirEmoji} ${ds.direction?ds.direction.toUpperCase():'BASELINE'}</span></div>
+      ${hasDelta?`<div style="display:flex;gap:12px;margin-bottom:6px;font-family:var(--mono);font-size:10px">
+        <span style="color:var(--dim)">Changes: <span style="color:var(--accent)">${ds.totalChanges}</span></span>
+        <span style="color:var(--dim)">Critical: <span style="color:${ds.criticalChanges>0?'var(--warn)':'var(--dim)'}">${ds.criticalChanges||0}</span></span>
+        ${ds.signalBreakdown?`<span style="color:var(--dim)">New: <span style="color:#4dd0e1">${ds.signalBreakdown.new}</span> &#8593;${ds.signalBreakdown.escalated} &#8595;${ds.signalBreakdown.deescalated}</span>`:''}
+      </div>`:''}
+      <div class="delta-list">${deltaHtml}</div>
+    </div>
+    <div class="g-panel lp-macro">
       <div class="sec-head"><h3>Macro + Markets</h3><span class="badge">${mkt.timestamp?'LIVE':'DELAYED'}</span></div>
       ${hasMarkets?`<div style="margin-bottom:8px">
         <div style="font-family:var(--mono);font-size:9px;color:var(--dim);margin-bottom:4px;letter-spacing:1px">INDEXES</div>
@@ -835,7 +898,7 @@ function renderLower(){
         <div class="spark">${sparkHtml}</div>
       </div>
     </div>
-    <div class="g-panel">
+    <div class="g-panel lp-ideas">
       <div class="sec-head"><h3>Leverageable Ideas</h3>${D.ideasSource==='llm'?'<span class="ideas-src llm">AI ENHANCED</span>':D.ideasSource==='disabled'?'<span class="ideas-src static">LLM OFF</span>':'<span class="ideas-src static">PENDING</span>'}</div>
       ${ideasHtml}
       <div class="disclosure">FOR INFORMATIONAL PURPOSES ONLY. This is not financial advice, a recommendation to buy or sell any security, or a solicitation of any kind. All signal-based observations are derived from publicly available OSINT data and should not be relied upon for investment decisions. Consult a licensed financial advisor before making any investment. Past performance does not guarantee future results.</div>
@@ -844,25 +907,8 @@ function renderLower(){
 
 // === RIGHT RAIL ===
 function renderRight(){
-  // NEWS TICKER — merges RSS + GDELT + Telegram into flowing cards
-  const feed = (D.newsFeed || []).slice(0, 40);
-  const srcClass = s => {
-    if (!s) return 'other';
-    const sl = s.toLowerCase();
-    if (sl.includes('bbc')) return 'bbc';
-    if (sl.includes('nyt') || sl.includes('times')) return 'nyt';
-    if (sl.includes('jazeera') || sl.includes('alj')) return 'alj';
-    if (sl.includes('gdelt')) return 'gdelt';
-    if (sl.includes('telegram')) return 'tg';
-    return 'other';
-  };
-  const tickerCards = feed.map(n => {
-    const sc = srcClass(n.source);
-    const age = n.timestamp ? getAge(n.timestamp) : '';
-    return `<div class="tk-card ${n.urgent?'urgent':''}"><span class="tk-src ${sc}">${(n.source||'NEWS').substring(0,12)}</span><span class="tk-time">${age}</span><div class="tk-head">${cleanText(n.headline||'')}</div></div>`;
-  }).join('');
-  // Duplicate for seamless infinite scroll
-  const tickerDuration = Math.max(20, feed.length * 2.5);
+  // CROSS-SOURCE SIGNALS — moved from lower grid to right rail
+  const signals=D.tSignals.slice(0,6).map((s,i)=>`<div class="signal-row"><strong>Signal ${i+1}</strong><p>${s}</p></div>`).join('');
 
   // OSINT TICKER — Telegram + WHO as flowing cards
   const allPosts=[...D.tg.urgent,...D.tg.topPosts].sort((a,b)=>new Date(b.date||0)-new Date(a.date||0));
@@ -888,11 +934,9 @@ function renderRight(){
   ];
 
   document.getElementById('rightRail').innerHTML=`
-    <div class="g-panel" style="display:flex;flex-direction:column">
-      <div class="sec-head"><h3>Live News Ticker</h3><span class="badge">${feed.length} ITEMS</span></div>
-      <div class="ticker-wrap" style="--ticker-duration:${tickerDuration}s">
-        <div class="ticker-track">${tickerCards}${tickerCards}</div>
-      </div>
+    <div class="g-panel">
+      <div class="sec-head"><h3>Cross-Source Signals</h3><span class="badge">WORLDVIEW</span></div>
+      ${signals}
     </div>
     <div class="g-panel" style="display:flex;flex-direction:column">
       <div class="sec-head"><h3>OSINT Stream</h3><span class="badge">${D.tg.urgent.length} URGENT</span></div>
