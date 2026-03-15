@@ -36,6 +36,9 @@ async function fetchQuote(symbol) {
     const data = await safeFetch(url, {
       timeout: 8000,
       headers: {
+        // NOTE: Browser User-Agent spoofing used for Yahoo Finance chart API.
+        // This may violate Yahoo's Terms of Service. Consider using an official
+        // market data API (e.g., Alpaca, Polygon) for production use. (documented per F21)
         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
       },
     });
