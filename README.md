@@ -364,6 +364,7 @@ All settings are in `.env` with sensible defaults:
 | `LLM_API_KEY` | — | API key (not needed for codex or ollama) |
 | `LLM_MODEL` | per-provider default | Override model selection |
 | `OLLAMA_HOST` | `http://localhost:11434` | Ollama server URL |
+| `CRUCIX_API_TOKEN` | disabled | When set, all `/api/*` and `/events` endpoints require `Authorization: Bearer <token>`. Recommended if the server is exposed beyond localhost. |
 | `TELEGRAM_BOT_TOKEN` | disabled | For Telegram alerts + bot commands |
 | `TELEGRAM_CHAT_ID` | — | Your Telegram chat ID |
 | `TELEGRAM_CHANNELS` | — | Extra channel IDs to monitor (comma-separated) |
