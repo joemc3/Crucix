@@ -76,7 +76,11 @@ const URGENT_KEYWORDS = [
 
 // ─── Bot API mode ───────────────────────────────────────────────────────────
 
-const botBase = () => `https://api.telegram.org/bot${process.env.TELEGRAM_BOT_TOKEN}`;
+// SECURITY: Validate env var before URL construction — prevents requests to malformed URLs (mitigates F9)
+const botBase = () => {
+  if (!process.env.TELEGRAM_BOT_TOKEN) throw new Error('TELEGRAM_BOT_TOKEN not configured');
+  return `https://api.telegram.org/bot${process.env.TELEGRAM_BOT_TOKEN}`;
+};
 
 // Get recent updates the bot has received
 export async function getUpdates(opts = {}) {

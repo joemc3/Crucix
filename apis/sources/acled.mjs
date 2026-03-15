@@ -93,8 +93,9 @@ async function loginOAuth(email, password) {
 async function authenticate() {
   const email    = process.env.ACLED_EMAIL;
   const password = process.env.ACLED_PASSWORD;
+  // SECURITY: Validate credentials exist before attempting auth (mitigates F9)
   if (!email || !password) {
-    return { error: 'No ACLED credentials. Set ACLED_EMAIL and ACLED_PASSWORD in .env.' };
+    return { error: 'ACLED_EMAIL and ACLED_PASSWORD not configured' };
   }
 
   // Return cached session if still valid
