@@ -25,6 +25,10 @@ desktop.ini
 .claude/
 CLAUDE.md
 
+# Superpowers planning & implementation docs
+plans/
+SECURITY_AUDIT_FINDINGS.md
+
 
 # Playwright
 .playwright-cli/
