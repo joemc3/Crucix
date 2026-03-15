@@ -429,7 +429,9 @@ async function start() {
   `);
 
   // SECURITY: bind to localhost only — prevents network exposure (mitigates F4)
-  const server = app.listen(port, '127.0.0.1');
+  // In Docker, bind to 0.0.0.0 so port forwarding works; Docker's network isolation provides protection.
+  const bindHost = process.env.DOCKER === '1' ? '0.0.0.0' : '127.0.0.1';
+  const server = app.listen(port, bindHost);
 
   server.on('error', (err) => {
     if (err.code === 'EADDRINUSE') {

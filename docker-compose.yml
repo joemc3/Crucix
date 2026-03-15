@@ -6,6 +6,8 @@ services:
       - "${PORT:-3117}:${PORT:-3117}"
     env_file:
       - .env
+    environment:
+      - DOCKER=1
     volumes:
       - ./runs:/app/runs
     restart: unless-stopped
