@@ -40,7 +40,16 @@ function loadChannels() {
   const custom = process.env.TELEGRAM_CHANNELS;
   if (!custom) return DEFAULT_CHANNELS;
 
-  const customIds = custom.split(',').map(s => s.trim()).filter(Boolean);
+  // SECURITY: Validate channel IDs against safe pattern — prevents injection via env var (mitigates F16)
+  const CHANNEL_PATTERN = /^[a-zA-Z0-9_]{5,32}$/;
+  const customIds = custom.split(',').map(s => s.trim()).filter(id => {
+    if (!id) return false;
+    if (!CHANNEL_PATTERN.test(id)) {
+      console.warn(`[Telegram] Skipping invalid channel ID: "${id}" — must be 5-32 alphanumeric/underscore characters`);
+      return false;
+    }
+    return true;
+  });
   const existing = new Set(DEFAULT_CHANNELS.map(c => c.id));
 
   const extras = customIds
