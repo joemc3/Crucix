@@ -5,6 +5,9 @@
 
 import { safeFetch } from '../utils/fetch.mjs';
 import '../utils/env.mjs';
+// SECURITY: Proper HTML parser replaces fragile regex extraction — prevents
+// malformed HTML from bypassing sanitization (mitigates F17)
+import { parse as parseHTML } from 'node-html-parser';
 
 function delay(ms) { return new Promise(r => setTimeout(r, ms)); }
 
@@ -153,67 +156,44 @@ async function fetchHTML(url, timeoutMs = 15000) {
   }
 }
 
-// Parse messages from Telegram web preview HTML (https://t.me/s/channel)
-// The HTML contains <div class="tgme_widget_message_wrap"> blocks with message content.
+// SECURITY: Use proper HTML parser instead of regex (mitigates F17)
 function parseWebPreview(html, channelId) {
   if (!html) return [];
 
+  const root = parseHTML(html);
   const messages = [];
 
-  // Each message sits inside a tgme_widget_message_wrap div
-  // We extract using the data-post attribute which has the format "channel/msgId"
-  const msgBlockRegex = /class="tgme_widget_message_wrap[^"]*"[\s\S]*?data-post="([^"]*)"([\s\S]*?)(?=class="tgme_widget_message_wrap|$)/gi;
-  // Simpler: split on message boundaries using data-post
-  const postRegex = /data-post="([^"]+)"([\s\S]*?)(?=data-post="|$)/gi;
+  // Each message has a data-post attribute with format "channel/msgId"
+  const msgElements = root.querySelectorAll('[data-post]');
 
-  let match;
-  while ((match = postRegex.exec(html)) !== null && messages.length < 20) {
-    const postId = match[1]; // e.g. "intelslava/12345"
-    const block = match[2];
+  for (const el of msgElements) {
+    if (messages.length >= 20) break;
 
-    // Extract message text from tgme_widget_message_text
-    const textMatch = block.match(/class="tgme_widget_message_text[^"]*"[^>]*>([\s\S]*?)<\/div>/i);
-    let text = '';
-    if (textMatch) {
-      text = textMatch[1]
-        .replace(/<br\s*\/?>/gi, '\n')     // preserve line breaks
-        .replace(/<[^>]+>/g, '')            // strip HTML tags
-        .replace(/&amp;/g, '&')
-        .replace(/&lt;/g, '<')
-        .replace(/&gt;/g, '>')
-        .replace(/&quot;/g, '"')
-        .replace(/&#039;/g, "'")
-        .replace(/&nbsp;/g, ' ')
-        .trim()
-        .slice(0, 300);
-    }
+    const postId = el.getAttribute('data-post');
+
+    // Extract message text — use textContent to strip all HTML safely
+    const textEl = el.querySelector('.tgme_widget_message_text');
+    const text = textEl ? textEl.textContent.trim().slice(0, 300) : '';
 
     // Extract view count
-    const viewsMatch = block.match(/class="tgme_widget_message_views"[^>]*>([\s\S]*?)<\/span>/i);
+    const viewsEl = el.querySelector('.tgme_widget_message_views');
     let views = 0;
-    if (viewsMatch) {
-      const raw = viewsMatch[1].trim();
+    if (viewsEl) {
+      const raw = viewsEl.textContent.trim();
       if (raw.endsWith('K')) views = parseFloat(raw) * 1000;
       else if (raw.endsWith('M')) views = parseFloat(raw) * 1000000;
       else views = parseInt(raw, 10) || 0;
     }
 
     // Extract datetime
-    const timeMatch = block.match(/datetime="([^"]+)"/i);
-    const date = timeMatch ? timeMatch[1] : null;
+    const timeEl = el.querySelector('time[datetime]');
+    const date = timeEl ? timeEl.getAttribute('datetime') : null;
 
-    // Check for media (photos, videos)
-    const hasMedia = /tgme_widget_message_photo|tgme_widget_message_video/i.test(block);
+    // Check for media
+    const hasMedia = !!el.querySelector('.tgme_widget_message_photo, .tgme_widget_message_video');
 
     if (text || hasMedia) {
-      messages.push({
-        postId,
-        text,
-        date,
-        views,
-        hasMedia,
-        channel: channelId,
-      });
+      messages.push({ postId, text, date, views, hasMedia, channel: channelId });
     }
   }
 
