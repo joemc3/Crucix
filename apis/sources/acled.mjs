@@ -109,7 +109,7 @@ async function authenticate() {
   // Try OAuth first (official programmatic method per ACLED docs)
   const oauthResult = await loginOAuth(email, password);
   if (oauthResult.token) {
-    if (debug) console.error(`[ACLED DEBUG] OAuth OK — token: ${oauthResult.token.slice(0, 20)}...`);
+    if (debug) console.error(`[ACLED DEBUG] OAuth OK — token acquired`);
     sessionCache = { cookies: null, token: oauthResult.token, method: 'oauth', expires: Date.now() + 23 * 60 * 60 * 1000 };
     return sessionCache;
   }
@@ -119,7 +119,7 @@ async function authenticate() {
   // Fall back to cookie-based session
   const cookieResult = await loginCookie(email, password);
   if (cookieResult.cookies) {
-    if (debug) console.error(`[ACLED DEBUG] Cookie OK — cookies: ${cookieResult.cookies.slice(0, 80)}...`);
+    if (debug) console.error(`[ACLED DEBUG] Cookie OK — session established`);
     sessionCache = { cookies: cookieResult.cookies, token: null, method: 'cookie', expires: Date.now() + 12 * 60 * 60 * 1000 };
     return sessionCache;
   }
@@ -178,7 +178,8 @@ export async function getEvents(opts = {}) {
     const hdrs = authHeaders(session);
     if (debug) {
       console.error(`[ACLED DEBUG] Data request: GET ${url}`);
-      console.error(`[ACLED DEBUG] Headers: ${JSON.stringify(hdrs)}`);
+      // SECURITY: don't log headers — they contain auth tokens (mitigates F12)
+      console.error(`[ACLED DEBUG] Request: GET ${url}`);
     }
     const controller = new AbortController();
     const timer = setTimeout(() => controller.abort(), 25000);
