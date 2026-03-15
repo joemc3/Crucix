@@ -8,7 +8,8 @@
 import { readFileSync, writeFileSync } from 'fs';
 import { dirname, join } from 'path';
 import { fileURLToPath } from 'url';
-import { exec } from 'child_process';
+// SECURITY: execFile avoids shell interpolation — mitigates F6 command injection
+import { execFile } from 'child_process';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const ROOT = join(__dirname, '..');
@@ -81,7 +82,8 @@ async function fetchRSS(url, source) {
 
 export async function fetchAllNews() {
   const feeds = [
-    ['http://feeds.bbci.co.uk/news/world/rss.xml', 'BBC'],
+    // SECURITY: HTTPS prevents MITM injection of fake headlines — F19
+    ['https://feeds.bbci.co.uk/news/world/rss.xml', 'BBC'],
     ['https://rss.nytimes.com/services/xml/rss/nyt/World.xml', 'NYT'],
     ['https://feeds.aljazeera.com/xml/rss/all.xml', 'Al Jazeera'],
   ];
@@ -455,7 +457,16 @@ async function cliInject() {
   const V2 = await synthesize(data);
   console.log(`Generated ${V2.ideas.length} leverageable ideas`);
 
-  const json = JSON.stringify(V2);
+  let json = JSON.stringify(V2);
+  // SECURITY: Escape sequences that could break out of <script> context (mitigates F2 code injection)
+  // - </script> could close the script tag and inject new HTML
+  // - <!-- could open an HTML comment, hiding subsequent code
+  // - U+2028/U+2029 are line terminators in JS but not JSON, causing parse errors
+  json = json
+    .replace(/<\/(script)/gi, '<\\/$1')
+    .replace(/<!--/g, '<\\!--')
+    .replace(/\u2028/g, '\\u2028')
+    .replace(/\u2029/g, '\\u2029');
   console.log('\n--- Synthesis ---');
   console.log('Size:', json.length, 'bytes | Air:', V2.air.length, '| Thermal:', V2.thermal.length,
     '| News:', V2.news.length, '| Ideas:', V2.ideas.length, '| Sources:', V2.health.length);
@@ -467,15 +478,20 @@ async function cliInject() {
   console.log('Data injected into jarvis.html!');
 
   // Auto-open dashboard in default browser
-  // NOTE: On Windows, `start` in PowerShell is an alias for Start-Service, not cmd's start.
-  // We must use `cmd /c start ""` to ensure it works in both cmd.exe and PowerShell.
-  const openCmd = process.platform === 'win32' ? 'cmd /c start ""' :
-                  process.platform === 'darwin' ? 'open' : 'xdg-open';
+  // SECURITY: execFile avoids shell interpolation — mitigates F6 command injection
   const dashUrl = htmlPath.replace(/\\/g, '/');
-  exec(`${openCmd} "${dashUrl}"`, (err) => {
-    if (err) console.log('Could not auto-open browser:', err.message);
-    else console.log('Dashboard opened in browser!');
-  });
+  if (process.platform === 'win32') {
+    execFile('cmd', ['/c', 'start', '', dashUrl], (err) => {
+      if (err) console.log('Could not auto-open browser:', err.message);
+      else console.log('Dashboard opened in browser!');
+    });
+  } else {
+    const openCmd = process.platform === 'darwin' ? 'open' : 'xdg-open';
+    execFile(openCmd, [dashUrl], (err) => {
+      if (err) console.log('Could not auto-open browser:', err.message);
+      else console.log('Dashboard opened in browser!');
+    });
+  }
 }
 
 // Run CLI if invoked directly
