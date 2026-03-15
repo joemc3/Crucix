@@ -222,6 +222,30 @@ For OpenRouter, models use `provider/model` format (e.g., `anthropic/claude-sonn
 
 Alerts work with or without an LLM on both Telegram and Discord. With an LLM configured, signal evaluation is richer and more context-aware. Without one, a deterministic rule engine evaluates signals based on severity, cross-domain correlation, and signal counts.
 
+### API Security (optional)
+
+By default, Crucix only listens on your local machine, so no one else can reach it. If you expose the server to your network (e.g., to view the dashboard from another device), you should set an API token to prevent unauthorized access to the data endpoints.
+
+**How to set it up:**
+
+1. Open a terminal and run this command to generate a random token:
+   ```bash
+   openssl rand -hex 32
+   ```
+   This prints a long random string like `a3f8b2c1d4e5...`. That's your token.
+
+2. Copy that string and add it to your `.env` file:
+   ```
+   CRUCIX_API_TOKEN=a3f8b2c1d4e5...
+   ```
+
+3. Restart Crucix. All `/api/*` and `/events` endpoints now require the token. The dashboard handles this automatically. Any external tool or script calling the API will need to include the header:
+   ```
+   Authorization: Bearer <your token>
+   ```
+
+If you're only running Crucix on your own machine and not exposing it to the network, you can skip this.
+
 ### Without Any Keys
 
 Crucix still works with zero API keys. 18+ sources require no authentication at all. Sources that need keys return structured errors and the rest of the sweep continues normally.
@@ -364,7 +388,7 @@ All settings are in `.env` with sensible defaults:
 | `LLM_API_KEY` | — | API key (not needed for codex or ollama) |
 | `LLM_MODEL` | per-provider default | Override model selection |
 | `OLLAMA_HOST` | `http://localhost:11434` | Ollama server URL |
-| `CRUCIX_API_TOKEN` | disabled | When set, all `/api/*` and `/events` endpoints require `Authorization: Bearer <token>`. Recommended if the server is exposed beyond localhost. Generate one with `openssl rand -hex 32`. |
+| `CRUCIX_API_TOKEN` | disabled | Protects API endpoints with a password. See [API Security](#api-security-optional) below. |
 | `TELEGRAM_BOT_TOKEN` | disabled | For Telegram alerts + bot commands |
 | `TELEGRAM_CHAT_ID` | — | Your Telegram chat ID |
 | `TELEGRAM_CHANNELS` | — | Extra channel IDs to monitor (comma-separated) |
