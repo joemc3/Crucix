@@ -141,10 +141,10 @@ Alerts are delivered as rich embeds with color-coded sidebars: red for FLASH, ye
 **Optional dependency:** The full bot requires `discord.js`. Install it with `npm install discord.js`. If it's not installed, Crucix automatically falls back to webhook-only mode.
 
 ### Optional LLM Layer
-Connect any of 4 LLM providers for enhanced analysis:
+Connect any of 6 LLM providers for enhanced analysis:
 - **AI trade ideas** — quantitative analyst producing 5-8 actionable ideas citing specific data
 - **Smarter alert evaluation** — LLM classifies signals into FLASH/PRIORITY/ROUTINE tiers with cross-domain correlation and confidence scoring
-- Providers: Anthropic Claude, OpenAI, Google Gemini, OpenAI Codex (ChatGPT subscription)
+- Providers: Anthropic Claude, OpenAI, Google Gemini, OpenAI Codex (ChatGPT subscription), Ollama (local/network models), OpenRouter (multi-provider gateway)
 - Graceful fallback — when LLM is unavailable, a rule-based engine takes over alert evaluation. LLM failures never crash the sweep cycle.
 
 ---
@@ -177,7 +177,7 @@ These three unlock the most valuable economic and satellite data. Each takes abo
 
 ### LLM Provider (optional, for AI-enhanced ideas)
 
-Set `LLM_PROVIDER` to one of: `anthropic`, `openai`, `gemini`, `codex`
+Set `LLM_PROVIDER` to one of: `anthropic`, `openai`, `gemini`, `codex`, `ollama`, `openrouter`
 
 | Provider | Key Required | Default Model |
 |----------|-------------|---------------|
@@ -185,8 +185,14 @@ Set `LLM_PROVIDER` to one of: `anthropic`, `openai`, `gemini`, `codex`
 | `openai` | `LLM_API_KEY` | gpt-5.4 |
 | `gemini` | `LLM_API_KEY` | gemini-3.1-pro |
 | `codex` | None (uses `~/.codex/auth.json`) | gpt-5.3-codex |
+| `ollama` | None | llama3 |
+| `openrouter` | `LLM_API_KEY` | anthropic/claude-sonnet-4-6 |
 
 For Codex, run `npx @openai/codex login` to authenticate via your ChatGPT subscription.
+
+For Ollama, set `OLLAMA_HOST` to your Ollama server URL (default: `http://localhost:11434`). Any model available on the instance can be selected via `LLM_MODEL`.
+
+For OpenRouter, models use `provider/model` format (e.g., `anthropic/claude-sonnet-4-6`, `meta-llama/llama-3-70b`). See [openrouter.ai/models](https://openrouter.ai/models) for available models.
 
 ### Telegram Bot + Alerts (optional)
 
@@ -354,9 +360,10 @@ All settings are in `.env` with sensible defaults:
 |----------|---------|-------------|
 | `PORT` | `3117` | Dashboard server port |
 | `REFRESH_INTERVAL_MINUTES` | `15` | Auto-refresh interval |
-| `LLM_PROVIDER` | disabled | `anthropic`, `openai`, `gemini`, or `codex` |
-| `LLM_API_KEY` | — | API key (not needed for codex) |
+| `LLM_PROVIDER` | disabled | `anthropic`, `openai`, `gemini`, `codex`, `ollama`, or `openrouter` |
+| `LLM_API_KEY` | — | API key (not needed for codex or ollama) |
 | `LLM_MODEL` | per-provider default | Override model selection |
+| `OLLAMA_HOST` | `http://localhost:11434` | Ollama server URL |
 | `TELEGRAM_BOT_TOKEN` | disabled | For Telegram alerts + bot commands |
 | `TELEGRAM_CHAT_ID` | — | Your Telegram chat ID |
 | `TELEGRAM_CHANNELS` | — | Extra channel IDs to monitor (comma-separated) |
