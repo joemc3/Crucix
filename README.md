@@ -6,7 +6,7 @@
 
 [![Node.js 22+](https://img.shields.io/badge/node-22%2B-brightgreen)](#quick-start)
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
-[![Dependencies](https://img.shields.io/badge/dependencies-1%20(express)-orange)](#architecture)
+[![Dependencies](https://img.shields.io/badge/dependencies-4%20(express%2C%20helmet%2C%20rate--limit%2C%20html--parser)-orange)](#architecture)
 [![Sources](https://img.shields.io/badge/OSINT%20sources-26-cyan)](#data-sources-26)
 [![Docker](https://img.shields.io/badge/docker-ready-blue?logo=docker)](#docker)
 
@@ -48,7 +48,7 @@ It was built for anyone who wants to understand what's actually happening in the
 git clone https://github.com/calesthio/Crucix.git
 cd crucix
 
-# 2. Install dependencies (just Express)
+# 2. Install dependencies
 npm install
 
 # 3. Copy env template and add your API keys (see below)
@@ -230,7 +230,7 @@ crucix/
 ├── crucix.config.mjs          # Configuration with env var overrides + delta thresholds
 ├── diag.mjs                   # Diagnostic script — run if server fails to start
 ├── .env.example               # All documented env vars
-├── package.json               # Runtime: express | Optional: discord.js
+├── package.json               # Runtime: express, helmet, express-rate-limit, node-html-parser | Optional: discord.js
 ├── docs/                      # Screenshots for README
 │
 ├── apis/
@@ -276,7 +276,7 @@ crucix/
 
 ### Design Principles
 - **Pure ESM** — every file is `.mjs` with explicit imports
-- **Minimal dependencies** — Express is the only runtime dependency. `discord.js` is optional (for Discord bot). LLM providers use raw `fetch()`, no SDKs.
+- **Minimal dependencies** — Runtime requires `express`, `helmet` (security headers), `express-rate-limit` (API rate limiting), and `node-html-parser` (safe HTML parsing). `discord.js` is optional (for Discord bot). DOMPurify loaded via CDN (client-side). LLM providers use raw `fetch()`, no SDKs.
 - **Parallel execution** — `Promise.allSettled()` fires all 26 sources simultaneously
 - **Graceful degradation** — missing keys produce errors, not crashes. LLM failures don't kill sweeps.
 - **Each source is standalone** — run `node apis/sources/gdelt.mjs` to test any source independently

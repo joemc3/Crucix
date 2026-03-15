@@ -39,7 +39,7 @@ Execute the **Full Briefing Flow** below.
 ### Step 1: Run the Crucix Sweep
 
 ```bash
-cd C:/Users/ishan/Documents/Crucix && node apis/briefing.mjs > runs/latest.json 2>&1
+node apis/briefing.mjs > runs/latest.json 2>&1
 ```
 
 This runs all 25 OSINT sources in parallel (~30-60 seconds). Output goes to `runs/latest.json`. If a timestamped backup is desired:
@@ -94,7 +94,7 @@ runs/briefing_YYYY-MM-DDTHH-MM-SSZ.md
 After the briefing is written, update the visual dashboard:
 
 ```bash
-cd C:/Users/ishan/Documents/Crucix && node dashboard/inject.mjs
+node dashboard/inject.mjs
 ```
 
 This script:
@@ -181,6 +181,6 @@ If the user just wants the written briefing without the dashboard:
 ## Source Notes
 
 - **25 sources**: GDELT, OpenSky, FIRMS, Maritime, Safecast, ACLED, ReliefWeb, WHO, OFAC, OpenSanctions, ADS-B, FRED, Treasury, BLS, EIA, GSCPI, USAspending, Comtrade, NOAA, EPA, Patents, Bluesky, Reddit, Telegram, KiwiSDR
-- Zero npm dependencies, pure ESM, Node 22+
+- Minimal dependencies (express required, discord.js optional, security hardening libs), pure ESM, Node 22+
 - Some sources may return errors (ACLED rate limits, GDELT empty results) — note this in Source Integrity
 - Telegram posts filtered for English (Cyrillic detection) — Russian-language posts are skipped in both briefing and dashboard
