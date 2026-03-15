@@ -5,10 +5,13 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>CRUCIX — Intelligence Terminal</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
+<!-- SECURITY: Google Fonts CSS is dynamically generated per user-agent, SRI not possible -->
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@300;400;500;600;700&family=Space+Grotesk:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-<script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
-<script src="https://d3js.org/d3.v7.min.js"></script>
-<script src="https://d3js.org/topojson.v3.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js" integrity="sha384-g4NTh/Iv5PPU4xPyhEWqPcwtNXOvdaDI8LLnyYfyNZOjKJeYQyjzQ9X5275eBjpt" crossorigin="anonymous"></script>
+<script src="https://d3js.org/d3.v7.min.js" integrity="sha384-CjloA8y00+1SDAUkjs099PVfnY2KmDC2BZnws9kh8D/lX1s46w6EPhpXdqMfjK6i" crossorigin="anonymous"></script>
+<script src="https://d3js.org/topojson.v3.min.js" integrity="sha384-9dCJK6nh7skY14HrcvlLYlFga9/MehJjL9ONWRflmiXNRuf8p2jiF4Y5PR881PTq" crossorigin="anonymous"></script>
+<!-- SECURITY: DOMPurify sanitizes external OSINT data before innerHTML rendering (mitigates F1 XSS) -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/dompurify/3.2.4/purify.min.js" integrity="sha384-eEu5CTj3qGvu9PdJuS+YlkNi7d2XxQROAFYOr59zgObtlcux1ae1Il3u7jvdCSWu" crossorigin="anonymous"></script>
 <style>
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 :root{
@@ -331,7 +334,7 @@ function renderLeftRail(){
     {name:'OSINT Feed',count:D.tg.posts,dot:'incident',sub:`${D.tg.urgent.length} urgent`}
   ];
   const allNormal=D.nuke.every(s=>!s.anom);
-  const nukeHtml=D.nuke.map(s=>`<div class="site-row"><span>${s.site}</span><span class="site-val">${s.n>0?(s.cpm?.toFixed(1)||'--')+' CPM':'No data'}</span></div>`).join('');
+  const nukeHtml=D.nuke.map(s=>`<div class="site-row"><span>${escapeHtml(s.site)}</span><span class="site-val">${s.n>0?(s.cpm?.toFixed(1)||'--')+' CPM':'No data'}</span></div>`).join('');
   const vix=D.fred.find(f=>f.id==='VIXCLS');
   const hy=D.fred.find(f=>f.id==='BAMLH0A0HYM2');
   const usd=D.fred.find(f=>f.id==='DTWEXBGS');
@@ -475,7 +478,7 @@ function plotMarkers(){
     const [x,y]=projection([o.lon,o.lat]); if(!x||!y) return;
     const g=markersG.append('g').attr('transform',`translate(${x},${y})`)
       .style('cursor','pointer')
-      .on('click',(ev)=>{ev.stopPropagation();showPopup(ev,(post.channel||'').toUpperCase(),cleanText(post.text?.substring(0,200)||''),`${post.views?.toLocaleString()||'?'} views`)});
+      .on('click',(ev)=>{ev.stopPropagation();showPopup(ev,(post.channel||'').toUpperCase(),escapeHtml(post.text?.substring(0,200)||''),`${post.views?.toLocaleString()||'?'} views`)});
     g.append('circle').attr('class','marker-circle').attr('r',4).attr('data-base-r',4).attr('fill','rgba(255,184,76,0.7)').attr('stroke','rgba(255,184,76,0.3)').attr('stroke-width',1);
   });
 
@@ -495,7 +498,7 @@ function plotMarkers(){
     const [x,y]=projection([n.lon,n.lat]); if(!x||!y) return;
     const g=markersG.append('g').attr('transform',`translate(${x},${y})`)
       .style('cursor','pointer')
-      .on('click',(ev)=>{ev.stopPropagation();showPopup(ev,n.source+' NEWS',cleanText(n.title),n.region+' · '+getAge(n.date))});
+      .on('click',(ev)=>{ev.stopPropagation();showPopup(ev,n.source+' NEWS',escapeHtml(n.title),n.region+' · '+getAge(n.date))});
     // Broadcast/signal icon instead of text label
     const s=5;
     g.append('path').attr('class','news-icon marker-circle').attr('data-base-r',s)
@@ -609,7 +612,8 @@ function showPopup(event,head,text,meta){
   if(top<0) top=10;
   popup.style.left=left+'px';popup.style.top=top+'px';
   popup.querySelector('.pp-head').textContent=head;
-  popup.querySelector('.pp-text').innerHTML=text;
+  // SECURITY: popup text comes from external OSINT feeds, use textContent (F1)
+  popup.querySelector('.pp-text').textContent=text;
   popup.querySelector('.pp-meta').textContent=meta;
   popup.classList.add('show');
 }
@@ -815,7 +819,7 @@ function renderLower(){
   const tickerCards = feed.map(n => {
     const sc = srcClass(n.source);
     const age = n.timestamp ? getAge(n.timestamp) : '';
-    return `<div class="tk-card ${n.urgent?'urgent':''}"><span class="tk-src ${sc}">${(n.source||'NEWS').substring(0,12)}</span><span class="tk-time">${age}</span><div class="tk-head">${cleanText(n.headline||'')}</div></div>`;
+    return `<div class="tk-card ${n.urgent?'urgent':''}"><span class="tk-src ${sc}">${escapeHtml((n.source||'NEWS').substring(0,12))}</span><span class="tk-time">${age}</span><div class="tk-head">${escapeHtml(n.headline||'')}</div></div>`;
   }).join('');
   const tickerDuration = Math.max(20, feed.length * 2.5);
 
@@ -827,9 +831,9 @@ function renderLower(){
       ${idea.ticker ? `<span class="idea-horizon">${idea.ticker}</span>` : ''}
       ${idea.horizon ? `<span class="idea-horizon">${idea.horizon}</span>` : ''}
       <span class="idea-conf">${idea.confidence} confidence</span>
-      <div class="idea-title">${idea.title}</div>
-      <div class="idea-text">${idea.text||idea.rationale||''}</div>
-      ${idea.risk ? `<div class="idea-text" style="color:var(--warn);margin-top:3px">Risk: ${idea.risk}</div>` : ''}
+      <div class="idea-title">${escapeHtml(idea.title)}</div>
+      <div class="idea-text">${escapeHtml(idea.text||idea.rationale||'')}</div>
+      ${idea.risk ? `<div class="idea-text" style="color:var(--warn);margin-top:3px">Risk: ${escapeHtml(idea.risk)}</div>` : ''}
     </div>`).join('') : `<div style="padding:20px;text-align:center;color:var(--dim);font-family:var(--mono);font-size:11px">
       <div style="font-size:24px;margin-bottom:8px;opacity:0.3">&#9888;</div>
       <div>LLM NOT CONFIGURED</div>
@@ -847,16 +851,16 @@ function renderLower(){
   const newSigs = (delta.signals?.new || []).slice(0,4);
   const deltaRows = [];
   for(const s of newSigs){
-    deltaRows.push(`<div class="delta-row new"><span class="delta-badge new">NEW</span><span class="delta-label">${s.reason||s.label||s.key}</span></div>`);
+    deltaRows.push(`<div class="delta-row new"><span class="delta-badge new">NEW</span><span class="delta-label">${escapeHtml(s.reason||s.label||s.key)}</span></div>`);
   }
   for(const s of escalated){
     const sev = s.severity==='critical'?'style="color:var(--warn);font-weight:600"':s.severity==='high'?'style="color:#ffab40"':'';
     const val = s.pctChange!==undefined?`${s.pctChange>0?'+':''}${s.pctChange}%`:`${s.change>0?'+':''}${s.change}`;
-    deltaRows.push(`<div class="delta-row"><span class="delta-badge up">&#9650;</span><span class="delta-label" ${sev}>${s.label}</span><span class="delta-val">${s.from}→${s.to} (${val})</span></div>`);
+    deltaRows.push(`<div class="delta-row"><span class="delta-badge up">&#9650;</span><span class="delta-label" ${sev}>${escapeHtml(s.label)}</span><span class="delta-val">${escapeHtml(s.from)}→${escapeHtml(s.to)} (${val})</span></div>`);
   }
   for(const s of deescalated){
     const val = s.pctChange!==undefined?`${s.pctChange}%`:`${s.change}`;
-    deltaRows.push(`<div class="delta-row"><span class="delta-badge down">&#9660;</span><span class="delta-label">${s.label||s.key}</span><span class="delta-val">${s.from}→${s.to} (${val})</span></div>`);
+    deltaRows.push(`<div class="delta-row"><span class="delta-badge down">&#9660;</span><span class="delta-label">${escapeHtml(s.label||s.key)}</span><span class="delta-val">${escapeHtml(s.from)}→${escapeHtml(s.to)} (${val})</span></div>`);
   }
   const deltaHtml = hasDelta ? deltaRows.join('') : '<div style="padding:12px;text-align:center;color:var(--dim);font-family:var(--mono);font-size:10px">No changes since last sweep</div>';
 
@@ -908,7 +912,7 @@ function renderLower(){
 // === RIGHT RAIL ===
 function renderRight(){
   // CROSS-SOURCE SIGNALS — moved from lower grid to right rail
-  const signals=D.tSignals.slice(0,6).map((s,i)=>`<div class="signal-row"><strong>Signal ${i+1}</strong><p>${s}</p></div>`).join('');
+  const signals=D.tSignals.slice(0,6).map((s,i)=>`<div class="signal-row"><strong>Signal ${i+1}</strong><p>${escapeHtml(s)}</p></div>`).join('');
 
   // OSINT TICKER — Telegram + WHO as flowing cards
   const allPosts=[...D.tg.urgent,...D.tg.topPosts].sort((a,b)=>new Date(b.date||0)-new Date(a.date||0));
@@ -918,9 +922,9 @@ function renderRight(){
     const isU=p.urgentFlags&&p.urgentFlags.length>0;
     const views=p.views?p.views>=1000?`${(p.views/1000).toFixed(0)}K`:p.views:'';
     const age=p.date?getAge(p.date):'';
-    const flags=(p.urgentFlags||[]).map(f=>`<span class="tk-src tg" style="margin-right:2px">${f}</span>`).join('');
+    const flags=(p.urgentFlags||[]).map(f=>`<span class="tk-src tg" style="margin-right:2px">${escapeHtml(f)}</span>`).join('');
     const srcCls=p.isWho?'style="color:#69f0ae;border-color:rgba(105,240,174,0.4)"':'class="tk-src tg"';
-    return `<div class="tk-card ${isU?'urgent':''}"><span ${srcCls}>${(p.channel||'OSINT').toUpperCase().substring(0,14)}</span>${views?`<span class="tk-src other">${views}</span>`:''}<span class="tk-time">${age}</span>${flags}<div class="tk-head">${cleanText((p.text||'').substring(0,160))}</div></div>`;
+    return `<div class="tk-card ${isU?'urgent':''}"><span ${srcCls}>${escapeHtml((p.channel||'OSINT').toUpperCase().substring(0,14))}</span>${views?`<span class="tk-src other">${views}</span>`:''}<span class="tk-time">${age}</span>${flags}<div class="tk-head">${escapeHtml((p.text||'').substring(0,160))}</div></div>`;
   }).join('');
   const osintDuration=Math.max(25,osintItems.length*3);
 
@@ -952,7 +956,11 @@ function renderRight(){
 
 // === HELPERS ===
 function getAge(d){const ms=Date.now()-new Date(d).getTime();const h=Math.floor(ms/3600000);if(h<1)return 'just now';if(h<24)return h+'h ago';return Math.floor(h/24)+'d ago'}
-function cleanText(t){return t.replace(/&#39;/g,"'").replace(/&#33;/g,"!").replace(/&amp;/g,"&").replace(/<[^>]+>/g,'')}
+// SECURITY: escapeHtml encodes entities for safe textContent/attribute use (mitigates F20)
+function escapeHtml(s){return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;')}
+// SECURITY: safeHtml sanitizes external data before innerHTML rendering via DOMPurify (mitigates F1 XSS)
+// NOTE: Currently unused — available for future innerHTML paths that need formatted HTML (bold, spans, etc.)
+function safeHtml(s){return typeof DOMPurify!=='undefined'?DOMPurify.sanitize(s,{ALLOWED_TAGS:['strong','em','span','div','p','br'],ALLOWED_ATTR:['class','style']}):escapeHtml(s)}
 
 // === BOOT SEQUENCE ===
 function runBoot(){
