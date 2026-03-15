@@ -7,9 +7,10 @@ export default {
   refreshIntervalMinutes: parseInt(process.env.REFRESH_INTERVAL_MINUTES) || 15,
 
   llm: {
-    provider: process.env.LLM_PROVIDER || null, // anthropic | openai | gemini | codex
+    provider: process.env.LLM_PROVIDER || null, // anthropic | openai | gemini | codex | ollama | openrouter
     apiKey: process.env.LLM_API_KEY || null,
     model: process.env.LLM_MODEL || null,
+    ollamaHost: process.env.OLLAMA_HOST || 'http://localhost:11434',
   },
 
   telegram: {
