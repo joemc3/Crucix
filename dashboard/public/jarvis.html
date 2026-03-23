@@ -957,7 +957,7 @@ function renderRight(){
 // === HELPERS ===
 function getAge(d){const ms=Date.now()-new Date(d).getTime();const h=Math.floor(ms/3600000);if(h<1)return 'just now';if(h<24)return h+'h ago';return Math.floor(h/24)+'d ago'}
 // SECURITY: escapeHtml encodes entities for safe textContent/attribute use (mitigates F20)
-function escapeHtml(s){return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;')}
+function escapeHtml(s){s=String(s??'');return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;')}
 // SECURITY: safeHtml sanitizes external data before innerHTML rendering via DOMPurify (mitigates F1 XSS)
 // NOTE: Currently unused — available for future innerHTML paths that need formatted HTML (bold, spans, etc.)
 function safeHtml(s){return typeof DOMPurify!=='undefined'?DOMPurify.sanitize(s,{ALLOWED_TAGS:['strong','em','span','div','p','br'],ALLOWED_ATTR:['class','style']}):escapeHtml(s)}
