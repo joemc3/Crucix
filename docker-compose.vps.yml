@@ -1,0 +1,17 @@
+version: '3.8'
+services:
+  crucix:
+    build: .
+    env_file:
+      - .env
+    environment:
+      - DOCKER=1
+    volumes:
+      - ./runs:/app/runs
+    restart: unless-stopped
+    networks:
+      - pangolin
+
+networks:
+  pangolin:
+    external: true
